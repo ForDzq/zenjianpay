@@ -19,77 +19,45 @@
             <div class="item_left">总金额</div>
             <div class="item_right allPrice">￥{{ACCOUNT_SUM}}</div>
           </div>
-          <div class="item" v-for="(item,index) in PAYMENT_INF" :key="index">
-            <div class="item_left">{{item.USER_NAME}}</div>
-            <div class="item_right">{{item.PATIENT_ID}}</div>
-          </div>
+          <template v-if="PAYMENT_INF.length">
+            <div class="item" v-for="(item,index) in PAYMENT_INF" :key="index">
+              <div class="item_left">{{item.USER_NAME}}</div>
+              <div class="item_right">{{item.PATIENT_ID}}</div>
+            </div>
+          </template>
         </div>
-        <div
-          class="prescriptionList"
-          v-for="(item,index) in PAYMENT_INF"
-          :key="index"
-          :class="{hasMargin: showArr[index]}"
-        >
-          <div class="prescriptionList_title">
-            <div class="title_num">单号：{{item.ORDER_NO}}</div>
-            <div class="title_price">
-              ￥{{item.ACCOUNT_SUM}}
-              <i class="iconfont icon-up" @click="clickExpand($event,index)"></i>
+        <template v-if="PAYMENT_INF.length">
+          <div
+            class="prescriptionList"
+            v-for="(item,index) in PAYMENT_INF"
+            :key="index"
+            :class="{hasMargin: showArr[index]}"
+          >
+            <div class="prescriptionList_title">
+              <div class="title_num">单号：{{item.ORDER_NO}}</div>
+              <div class="title_price">
+                ￥{{item.ACCOUNT_SUM}}
+                <i class="iconfont icon-up" @click="clickExpand($event,index)"></i>
+              </div>
+            </div>
+            <div class="prescriptionList_bar">
+              <img src="../../assets/images/ScanPrescription_bar.png" alt="条的图片" />
+            </div>
+            <div class="prescriptionList_frame" :ref="'aaa'+index" v-show="!showArr[index]">
+              <div class="frame_title">{{item.ITEM_CLASS}}</div>
+              <div class="frame_time">开处方时间：{{item.VISIT_DATE}}</div>
+              <div
+                class="frame_detail"
+                v-for="(smallItem,smallIndex) in item.PAYDETAIL"
+                :key="smallIndex"
+              >
+                <div class="detail detail_name">{{smallItem.APPLY_NAME}}</div>
+                <div class="detail detail_order">{{smallItem.ITEM_AMOUNT}}</div>
+                <div class="detail detail_price">￥{{smallItem.ITEM_COSTS}}</div>
+              </div>
             </div>
           </div>
-          <div class="prescriptionList_bar">
-            <img src="../../assets/images/ScanPrescription_bar.png" alt="条的图片" />
-          </div>
-          <div class="prescriptionList_frame" :ref="'aaa'+index" v-show="!showArr[index]">
-            <div class="frame_title">{{item.ITEM_CLASS}}</div>
-            <div class="frame_time">开处方时间：{{item.VISIT_DATE}}</div>
-            <div
-              class="frame_detail"
-              v-for="(smallItem,smallIndex) in item.PAYDETAIL"
-              :key="smallIndex"
-            >
-              <div class="detail detail_name">{{smallItem.APPLY_NAME}}</div>
-              <div class="detail detail_order">{{smallItem.ITEM_AMOUNT}}</div>
-              <div class="detail detail_price">￥{{smallItem.ITEM_COSTS}}</div>
-            </div>
-            <!-- <div class="frame_detail">
-              <div class="detail detail_name">挂号费</div>
-              <div class="detail detail_order">1</div>
-              <div class="detail detail_price">￥20.00</div>
-            </div>-->
-          </div>
-        </div>
-        <!-- <div class="prescriptionList">
-          <div class="prescriptionList_title">
-            <div class="title_num">单号：02838474848949</div>
-            <div class="title_price">
-              ￥23.00
-              <i class="iconfont icon-up" @click="clickExpand"></i>
-            </div>
-          </div>
-          <div class="prescriptionList_bar">
-            <img src="../../assets/images/ScanPrescription_bar.png" alt="条的图片" />
-          </div>
-          <div class="prescriptionList_frame">
-            <div class="frame_title">口腔科门诊</div>
-            <div class="frame_time">开处方时间：2019-11-11 14:34:16</div>
-            <div class="frame_detail">
-              <div class="detail detail_name">挂号费</div>
-              <div class="detail detail_order">1</div>
-              <div class="detail detail_price">￥20.00</div>
-            </div>
-            <div class="frame_detail">
-              <div class="detail detail_name">挂号费</div>
-              <div class="detail detail_order">1</div>
-              <div class="detail detail_price">￥20.00</div>
-            </div>
-            <div class="frame_detail">
-              <div class="detail detail_name">挂号费</div>
-              <div class="detail detail_order">1</div>
-              <div class="detail detail_price">￥20.00</div>
-            </div>
-          </div>
-        </div>-->
+        </template>
       </div>
       <button class="btn" @click="confirmPayment">确认支付</button>
     </div>
@@ -114,6 +82,8 @@ export default {
       HOSPITAL_NAME: '医院名称',
       HOSPITAL_ID: '医院id',
       ACCOUNT_SUM: '总金额',
+      ORDER_NO: '订单号',
+      // PAYMENT_INF: [],
       PAYMENT_INF: [{
         ORDER_NO: '订单号', // 第二个请求要携带过去
         ACCOUNT_SUM: '总金额',
@@ -151,6 +121,13 @@ export default {
       }]
     }
   },
+  watch: {
+    ORDER_NO: {
+      handler (newVal) {
+        localStorage.setItem('ORDER_NO',newVal)
+      }
+    }
+  },
   methods: {
     // 点击向上或向下箭头展开和收起列表
     clickExpand(event,index) {
@@ -163,6 +140,18 @@ export default {
     },
     // 点击确认支付
     async confirmPayment() {
+      //  if (this.payUrl) {
+      //    window.location.href = this.payUrl
+      // } else {
+      //   await this.requestPayUrl()
+      //   console.log('点击确认支付重新发请求')
+      //   if (this.payUrl) {
+      //     window.location.href = this.payUrl
+      //   }
+      // }
+      this.ORDER_NO = '33333333333'
+      this.$router.push('/PayResults')
+
       // if (this.payUrl) {
       //   this.$router.push({name:'PayIframe',params: {url:this.payUrl}})
       // } else {
@@ -177,24 +166,34 @@ export default {
     },
     // 获取页面的所有展示信息
     reqPaymentBusiness () {
-      let paramPayment = {}
-      let search = location.search
-      if (search != '') {
+      console.log('location.search-----------',location.search,this.$route.query)
+      let paramPayment = this.$route.query
+      let search = this.$route.query || location.search
+      if (Object.keys(this.$route.query).length == 0 && location.search != '') {
         search.slice(1).split("&").forEach((item) => {
         let arr = item.split("=")
         paramPayment[arr[0]]=arr[1]
         })
         this.paramPayment = paramPayment
       }
-      return reqPaymentBusinessFast(paramPayment).then(({data,success}) => {
+      // let search = location.search || Object.keys(this.$route.query)
+      // if (search != '') {
+      //   search.slice(1).split("&").forEach((item) => {
+      //   let arr = item.split("=")
+      //   paramPayment[arr[0]]=arr[1]
+      //   })
+      //   this.paramPayment = paramPayment
+      // }
+      return reqPaymentBusinessFast(paramPayment).then(({data}) => {
         console.log('获取页面所有数据的data',data)
-        if (success && data) {
-          this.HOSPITAL_NAME = data.pay.HOSPITAL_NAME
-          this.HOSPITAL_ID = data.pay.HOSPITAL_ID
-          this.ACCOUNT_SUM = data.pay.ACCOUNT_SUM
+        if (data.resultCode == '0000000') {
+          this.HOSPITAL_NAME = data.pay[0].HOSPITAL_NAME
+          this.HOSPITAL_ID = data.pay[0].HOSPITAL_ID
+          this.ACCOUNT_SUM = data.pay[0].ACCOUNT_SUM
           this.PUBLIC_SERVICE_TYPE = data.PUBLIC_SERVICE_TYPE
-          this.PAYMENT_INF = JSON.parse(data.pay.PAYMENT_INF)
-          console.log('json格式化后-----',JSON.parse(data.data.pay.PAYMENT_INF))
+          this.PAYMENT_INF = JSON.parse(data.pay[0].PAYMENT_INF)
+          this.ORDER_NO = this.PAYMENT_INF[0] && this.PAYMENT_INF[0].ORDER_NO
+          console.log('json格式化后-----',JSON.parse(data.pay[0].PAYMENT_INF))
         }
       }).catch(e => {console.log('获取页面所有数据错误----',e)})
     },
@@ -207,11 +206,12 @@ export default {
         PUBLIC_SERVICE_TYPE: this.PUBLIC_SERVICE_TYPE,
         AMOUNT: this.ACCOUNT_SUM,
         hospitalID: this.HOSPITAL_ID,
-        TRADE_NO: this.PAYMENT_INF.ORDER_NO, //交易订单号
+        TRADE_NO: this.ORDER_NO, //交易订单号
         TRANS_CODE: '01'
       }
-      return reqPayHandle(param).then(({data,success}) => {
-        if (success) {
+      return reqPayHandle(param).then(({data}) => {
+        // console.log('获取支付url---data--success',data,success)
+        if (data.resultCode == '0000000 ') {
           if (data.REFERER) {
             this.payUrl = data.REFERER
           }
@@ -289,7 +289,8 @@ export default {
       overflow-y: auto;
       box-sizing: border-box;
       // padding-bottom: 2.76rem;
-      margin: 0 0.546667rem;
+      // margin: 0 0.546667rem;
+      padding: 0 0.546667rem;
       .collect_price {
         width: 100%;
         margin-bottom: 0.613333rem;
@@ -351,13 +352,13 @@ export default {
           }
         }
         .prescriptionList_frame {
-          margin-top: -0.34rem;
-          width: 100%;
+          margin: 0px 15px 0px;
           box-sizing: border-box;
-          padding: 0.786667rem 0.893333rem 1.053333rem 0.92rem;
-          background: url("../../assets/images/ScanPrescription_frame_expand.png")
-            no-repeat;
-          background-size: 100% 100%;
+          background: url("../../assets/images/ScanPrescription_frame_expand.png") no-repeat;
+          background-size: 100% auto;
+          background-position: left bottom;
+          padding: 0.786667rem 0.5rem 1.053333rem 0.5rem;
+          box-shadow: -10px 0px 10px -10px rgb(233, 231, 231),10px 0px 10px -10px   rgb(233, 231, 231);  
           .frame_title {
             font-size: 0.48rem;
             color: rgba(51, 51, 51, 1);

@@ -1,24 +1,12 @@
 <template>
   <div id="app">
-    <!-- <keep-alive include="PayIframe"> -->
-    <router-view @getPayUrl="getPayUrl" :payUrl="payUrl"></router-view>
-    <!-- </keep-alive> -->
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'App',
-  data () {
-    return {
-      payUrl: ''
-    }
-  },
-  methods: {
-    getPayUrl (payUrl) {
-      this.payUrl = payUrl
-    }
-  }
+  name: 'App'
 }
 </script>
 
