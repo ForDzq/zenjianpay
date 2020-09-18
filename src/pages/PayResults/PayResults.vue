@@ -14,7 +14,7 @@
         <div>请重新支付</div>
       </div>
     </div>
-    <button class="btn" @click="handleClick">返回</button>
+    <div class="btn" @click="handleClick">返回</div>
   </div>
 </template>
 
@@ -22,6 +22,7 @@
   import HeaderTitle from '../../components/HeaderTitle'
   import {reqPayHandleResult} from '../../api'
   export default {
+    name: 'PayResults',
     components: {
       HeaderTitle
     },
@@ -31,7 +32,7 @@
         reqAgain: false,
         responseText: '',
         headerTitle: '支付结果',
-        ORDER_NO: localStorage.getItem('ORDER_NO')
+        OUT_TRADE_NO: localStorage.getItem('OUT_TRADE_NO')
       }
     },
     methods: {
@@ -42,15 +43,17 @@
       reqResult () {
         this.reqAgain = false
         let paramResult = {
-          TRADE_NO: this.ORDER_NO,
+          op: 'payHandle',
+          TRADE_NO: this.OUT_TRADE_NO,
           TRANS_CODE: '05'
         }
         reqPayHandleResult(paramResult).then(({data}) => {
           if (data.resultCode == '0000000') {
             this.loading = false
-            if (data.TRADE_STATUS == '1') {
+            let res = data.data
+            if (res.TRADE_STATUS == '1') {
               this.responseText = true
-            } else if (data.TRADE_STATUS == '0' || data.TRADE_STATUS == '2') {
+            } else if (res.TRADE_STATUS == '0' || res.TRADE_STATUS == '2') {
               this.responseText = false
             }
           } else if (data.success == false) {
@@ -60,7 +63,7 @@
       }
     },
     created () {
-      console.log('结果页面的---ORDER_NO',this.ORDER_NO)
+      this.OUT_TRADE_NO = localStorage.getItem('OUT_TRADE_NO')
       this.reqResult()
     }
   }
@@ -120,6 +123,7 @@
     transform: translateX(-50%);
     width: 7.84rem;
     height: 1.08rem;
+    text-align: center;
     line-height: 1.08rem;
     background:rgba(94,117,237,1);
     border-radius: .546667rem;

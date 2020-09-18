@@ -1,13 +1,20 @@
 <template>
   <div class="headerTitle">
-    <i class="iconfont icon-iconfontjiantouzuo" @click="handleClick"></i>
+    <i class="iconfont icon-iconfontjiantouzuo" @click="handleClick" v-if="showReturn"></i>
     <p class="title">{{headerTitle}}</p>
   </div>
 </template>
 
 <script>
   export default {
-    props: ['headerTitle','backUrl'],
+    // props: ['headerTitle','backUrl','showReturn'],
+    props: {
+      headerTitle: {},
+      backUrl: {},
+      showReturn: {
+        default: true
+      }
+    },
     methods: {
       handleClick () {
         if (this.backUrl) {
@@ -33,7 +40,7 @@
     color: #fff;
   }
   .title {
-    font-size: .453333rem;
+    font-size: .5rem;
     color: #FFFFFF;
     font-family:Source Han Sans CN;
   }

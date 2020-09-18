@@ -1,16 +1,16 @@
 import ajax from './ajax'
-
 let isPro = process.env.NODE_ENV === 'production' // 开发环境是development
-// let baseURL = isPro ? 'http://1.3.4:8888/' : '/api'
 // axios.defaults.baseURL = baseURL
 const BASE = isPro ? 'https://app.yiliao.ccb.com' : '/api'
-console.log(process.env.NODE_ENV,BASE)
+// const BASE = '/api'
 
 //1.1门诊快速缴费查询接口
-export const reqPaymentBusinessFast = ({HOSPITALID_TREE,hospitalID,patientId,ID_NO,NAME,QUERY_TYPE}) => ajax({
-  method: 'POST',
-  url: BASE+'/APP/ccb/payment/action/PaymentActionC.jspx',
-  data: {
+export const reqPaymentBusinessFast = ({op,PUBLIC_SERVICE_TYPE,HOSPITALID_TREE,hospitalID,patientId,ID_NO,NAME,QUERY_TYPE}) => ajax({
+  method: 'GET',
+  url: BASE+'/APP/payment/action/PaymentActionC.jspx',
+  params: {
+    op,
+    PUBLIC_SERVICE_TYPE,
     HOSPITALID_TREE,
     hospitalID,
     patientId,
@@ -20,7 +20,7 @@ export const reqPaymentBusinessFast = ({HOSPITALID_TREE,hospitalID,patientId,ID_
   }
 })
 
-//1.2支付方式查询接口 getPaymentMethod
+//1.2支付方式查询接口 getPaymentMethod,暂时不用，固定写54
 export const reqPaymentMethod = ({BUSINESSPAYTYPE,TRADE_NO,hospitalID}) => ajax({
   method: 'POST',
   url: BASE+'/APP/payment/bll/PaymentBllC.jspx',
@@ -33,9 +33,9 @@ export const reqPaymentMethod = ({BUSINESSPAYTYPE,TRADE_NO,hospitalID}) => ajax(
 
 //1.3支付下单接口payHandle
 export const reqPayHandle = ({loc,op,PAY_TYPE,PUBLIC_SERVICE_TYPE,USER_ID,USER_VS_ID,operateCurrent_UserId,operateUserSource,AMOUNT,hospitalID,TRADE_NO,TRANS_CODE}) => ajax({
-  method: 'POST',
+  method: 'GET',
   url: BASE+'/APP/apppay/action/PayActionC.jspx',
-  data: {
+  params: {
     loc,
     op,
     PAY_TYPE,
@@ -52,54 +52,46 @@ export const reqPayHandle = ({loc,op,PAY_TYPE,PUBLIC_SERVICE_TYPE,USER_ID,USER_V
 })
 
 //1.4支付结果查询接口
-export const reqPayHandleResult = ({TRADE_NO,TRANS_CODE}) => ajax({
-  method: 'POST',
+export const reqPayHandleResult = ({op,TRADE_NO,TRANS_CODE}) => ajax({
+  method: 'GET',
   url: BASE+'/APP/apppay/action/PayActionC.jspx',
-  data: {
+  params: {
+    op,
     TRADE_NO,
     TRANS_CODE
   }
 })
 
+// 1.5 生成订单号，支持单选或者多选来支付OUT_TRADE_NO----/APP/ccb/payment/action/PaymentActionC.jspx
+export const reqOutTradeNo = ({op,IS_CLINIC_FAST,USER_VS_ID,operateCurrent_UserId,MODEL_HOSPITAL_ID,details,MARK_DESC,AMOUNT,isLogin,loc,opVersion,isWebS,auth,hospitalID}) => ajax({
+  method: 'GET',
+  url: BASE+'/APP/payment/action/PaymentActionC.jspx',
+  params: {
+    op,
+    IS_CLINIC_FAST,
+    USER_VS_ID,
+    operateCurrent_UserId,
+    MODEL_HOSPITAL_ID,
+    details,
+    MARK_DESC,
+    AMOUNT,
+    isLogin,
+    loc,
+    opVersion,
+    isWebS,
+    auth,
+    hospitalID
+  }
+})
 
-// 根据经纬度获取位置详情
-// export const reqAddress = () => ajax.get(
-//   BASE
-// )
-// 获取食品分类列表
-// export const reqCategorys = () => ajax({
-//   method: 'GET',
-//   url: BASE + '/index_category',
-//   headers: {
-//     needToken: true
-//   }
-// })
-
-// 根据经纬度获取商铺列表
-// export const reqShops = ({latitude, longitude}) => ajax({
-//   method: 'GET',
-//   url: BASE + '/shops',
-//   params: { latitude, longitude },
-//   headers: {
-//     needToken: true
-//   }
-// })
-
-// export const smsLogin = ({phone,code}) => ajax({
-//   method: 'POST',
-//   url: BASE+'/login_sms',
-//   data: {
-//     phone,
-//     code
-//   }
-// })
-
-// export const pwdLogin = ({name,pwd,captcha}) => ajax({
-//   method: 'POST',
-//   url: BASE+'/login_pwd',
-//   data: {
-//     name,
-//     pwd,
-//     captcha
-//   }
-// })
+// 1.6 查询历史缴费记录接口 /APP/ccb/payment/action/PaymentActionC.jspx  getPayHisFast
+export const reqPayHisFast = ({op,HOSPITALID_TREE,INPUT_PATIENT_ID,SORT_RULE}) => ajax({
+  method: 'GET',
+  url: BASE+'/APP/payment/action/PaymentActionC.jspx',
+  params: {
+    op,
+    HOSPITALID_TREE,
+    INPUT_PATIENT_ID,
+    SORT_RULE
+  }
+})
