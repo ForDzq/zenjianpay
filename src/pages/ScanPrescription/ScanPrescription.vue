@@ -5,8 +5,10 @@
       <div class="reqAgain" v-else @click="reqAgain">加载失败，请重新加载</div>
     </div>
     <div class="container" v-else>
-      <div class="historyPayment" @click="expandHistory">
-        <img src="../../assets/images/ScanPrescription_historyPayment.png" />
+      <div @click="expandHistory">
+        <drag right="0px" top="203px" class="historyPayment">
+          <img src="../../assets/images/ScanPrescription_historyPayment.png" />
+        </drag>
       </div>
       <div class="history_container" v-if="showHistory">
         <div class="history_mask">
@@ -79,7 +81,7 @@
           <div class="collect_price">
             <div class="item">
               <div class="item_left">姓名</div>
-              <div class="item_right">{{NAME}}</div>
+              <div class="item_right">{{PATIENT_NAME}}</div>
             </div>
             <div class="item" v-if="hasPayment">
               <div class="item_left">总金额</div>
@@ -97,7 +99,10 @@
               :class="{hasMargin: showArr[index]}"
             >
               <div class="prescriptionList_title">
-                <div class="title_num">类别：{{item.ITEM_CLASS}}</div>
+                <div class="title_num">
+                  <i class="iconfont icon" v-if="CHOOSE_MODEL != 2" :class="{ 'icon-gouxuan' : chooseIndex[index],'icon-gouxuan1' : !chooseIndex[index]}" @click="checkboxClick(index,item.ACCOUNT_SUM)"></i>
+                  类别：{{item.ITEM_CLASS}}
+                </div>
                 <div class="title_price">
                   ￥{{item.ACCOUNT_SUM}}
                   <i
@@ -125,7 +130,7 @@
             </div>
           </template>
         </div>
-        <div class="btn" @click="confirmPayment" v-if="hasPayment">确认支付</div>
+        <div class="btn" @click="confirmPayment" v-if="hasPayment">确认支付 ￥{{CHOOSE_MODEL == 2 ? ACCOUNT_SUM : count}}</div>
       </div>
     </div>
   </div>
@@ -133,11 +138,13 @@
 
 <script>
 import HeaderTitle from "../../components/HeaderTitle";
+import Drag from "../../components/Drag";
 import { reqPaymentBusinessFast, reqPayHandle, reqOutTradeNo, reqPayHisFast} from "../../api";
 export default {
   name: "ScanPrescription", // 使用路由缓存的时候需要在这里设置
   components: {
-    HeaderTitle
+    HeaderTitle,
+    Drag
   },
   data() {
     return {
@@ -164,7 +171,10 @@ export default {
       ACCOUNT_SUM: "", // 总金额
       OUT_TRADE_NO: "", // 支付订单号，可多项订单支付
       DETAIL_ORDER_NO: "", // 订单号的数组，用于获取支付url
-      PAYMENT_INFO: []
+      PAYMENT_INFO: [],
+      CHOOSE_MODEL: '' , // 支付模式，0是单选，1是多选，2是全选
+      chooseIndex: [], // 单选，多选，全选，选中的index
+      count: 0, // 选中一共的金额
     };
   },
   watch: {
@@ -214,23 +224,25 @@ export default {
     },
     // 点击确认支付
     async confirmPayment() {
-      // if (!this.hasPayment) {
-      //   alert('暂无待缴费的信息')
-      //   return
-      // }
-      if (this.payUrl) {
-        window.location.href = this.payUrl;
-      } else {
-        await this.reqTradeNo();
-        if (this.OUT_TRADE_NO) {
-          await this.requestPayUrl();
-          if (this.payUrl) {
-            window.location.href = this.payUrl;
+      let hasSelect = this.chooseIndex.filter((item) => {
+        return item
+      })
+      if (this.CHOOSE_MODEL == 2 || hasSelect.length) {
+        // alert('执行了')
+        if (this.payUrl) {
+          window.location.href = this.payUrl;
+        } else {
+          await this.reqTradeNo();
+          if (this.OUT_TRADE_NO) {
+            await this.requestPayUrl();
+            if (this.payUrl) {
+              window.location.href = this.payUrl;
+            } else {
+              alert("请求失败，请重新点击确认支付");
+            }
           } else {
             alert("请求失败，请重新点击确认支付");
           }
-        } else {
-          alert("请求失败，请重新点击确认支付");
         }
       }
       // this.$router.push('/PayResults')
@@ -276,28 +288,26 @@ export default {
       let paramPayment = this.paramPayment;
       if (!paramPayment) {
         if (this.$route.query) {
-          this.NAME = this.$route.query.NAME
+          // this.NAME = this.$route.query.NAME
           let obj = this.$route.query
           obj.op = 'paymentBusinessFast'
-          delete(obj.NAME)
-          paramPayment = obj
-          this.paramPayment = obj
+          // 将简写映射成对应的名称key
+          let keyMap = {hid: 'HOSPITALID_TREE',pid: 'patientId',qt: 'QUERY_TYPE',pst: 'PUBLIC_SERVICE_TYPE'}
+          let objs = Object.keys(obj).reduce((newData, key) => {
+          let newKey = keyMap[key] || key
+          newData[newKey] = obj[key]
+          return newData
+          }, {})
+          // delete(obj.NAME)
+          paramPayment = objs
+          this.paramPayment = objs
         }
-        // paramPayment = this.$route.query;
-        // let search = this.$route.query || location.search;
-        // if (Object.keys(this.$route.query).length == 0 &&location.search != "") {
-        //   search.slice(1).split("&").forEach(item => {
-        //       let arr = item.split("=");
-        //       paramPayment[arr[0]] = arr[1];
-        //     });
-        //   this.paramPayment = paramPayment;
-        // } else {
-        //   this.paramPayment = paramPayment;
-        // }
       }
+      // console.log('发请求前的数据-----------',paramPayment)
       return reqPaymentBusinessFast(paramPayment)
         .then(({ data }) => {
           // console.log("获取页面所有数据的data", data);
+          // 下面这行要注释掉
           // data = {"success":true,"time":"2020-08-20 16:12:26","message":"null","resultCode":"0000000","data":{"ID_NO":"6105**********3237","PUBLIC_SERVICE_TYPE":"020025","PAY_TOTAL":1,"SEX":"男","PAY":[{"HOSPITAL_NAME":"郑州市管城中医院","HOSPITAL_ID":20104,"PAYMENT_INFO":"[{\"HOSPITAL_NAME\":\"郑州市管城中医院\",\"ITEM_CLASS\":\"西药\",\"PERFORMED_BY\":\"口腔科门诊\",\"PRESC_ATTR\":\"2020082010115\",\"SERIAL_NO\":\"57388-5004-10425\",\"CHOOSE_MODEL\":\"1\",\"T_RECORD_ID\":0,\"TOTAL\":0,\"SHOW_NAME\":\"流水号：57388-5004-10425\",\"DELETE_FLAG\":1,\"ENABLE_REFUND_FLAG\":\"0\",\"EQUAL_FLAG\":\"true\",\"REC_MASTER_ID\":128674185,\"HOSPITAL_ID\":20104,\"PATIENT_ID\":\"610524199112063237\",\"USER_VS_ID\":0,\"USER_ID\":0,\"USER_NAME\":\"李雪锋\",\"PAY_FLAG\":\"0\",\"PAYTYPE_FLAG\":\"\",\"ACCOUNT_SUM\":1.730,\"REMARK\":\"6\",\"PAYDETAIL\":[{\"APPLY_NAME\":\"阿莫西林胶囊\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":1,\"REC_MASTER_ID\":128674185,\"ITEM_NO\":\"10112002CP0\",\"ITEM_NAME\":\"阿莫西林胶囊(西药)\",\"ITEM_COSTS\":1.730,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57388-5004-10425\",\"ITEM_CLASS\":\"西药\",\"ITEM_CODE\":\"10112002CP0\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"}],\"UNIQUE_KEY\":\"af432e6580cdbb8108ef25158dc5a0a5\",\"VISIT_DATE\":\"2020/08/20\"},{\"HOSPITAL_NAME\":\"郑州市管城中医院\",\"ITEM_CLASS\":\"检查\",\"PERFORMED_BY\":\"口腔科门诊\",\"PRESC_ATTR\":\"2020082010115\",\"SERIAL_NO\":\"57391-3003-0\",\"CHOOSE_MODEL\":\"1\",\"T_RECORD_ID\":0,\"TOTAL\":0,\"SHOW_NAME\":\"流水号：57391-3003-0\",\"DELETE_FLAG\":1,\"ENABLE_REFUND_FLAG\":\"0\",\"EQUAL_FLAG\":\"true\",\"REC_MASTER_ID\":128674186,\"HOSPITAL_ID\":20104,\"PATIENT_ID\":\"610524199112063237\",\"USER_VS_ID\":0,\"USER_ID\":0,\"USER_NAME\":\"李雪锋\",\"PAY_FLAG\":\"0\",\"PAYTYPE_FLAG\":\"\",\"ACCOUNT_SUM\":72.000,\"REMARK\":\"6\",\"PAYDETAIL\":[{\"APPLY_NAME\":\"肝胆胰脾彩超\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":2,\"REC_MASTER_ID\":128674186,\"ITEM_NO\":\"CCGDYYD001\",\"ITEM_NAME\":\"肝胆胰脾彩超(检查)\",\"ITEM_COSTS\":72.000,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57391-3003-0\",\"ITEM_CLASS\":\"检查\",\"ITEM_CODE\":\"CCGDYYD001\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"}],\"UNIQUE_KEY\":\"9adc66d3db4dbd1465f3d7fc62c7c825\",\"VISIT_DATE\":\"2020/08/20\"},{\"HOSPITAL_NAME\":\"郑州市管城中医院\",\"ITEM_CLASS\":\"化验\",\"PERFORMED_BY\":\"口腔科门诊\",\"PRESC_ATTR\":\"2020082010115\",\"SERIAL_NO\":\"57393-3000-0\",\"CHOOSE_MODEL\":\"1\",\"T_RECORD_ID\":0,\"TOTAL\":0,\"SHOW_NAME\":\"流水号：57393-3000-0\",\"DELETE_FLAG\":1,\"ENABLE_REFUND_FLAG\":\"0\",\"EQUAL_FLAG\":\"true\",\"REC_MASTER_ID\":128674187,\"HOSPITAL_ID\":20104,\"PATIENT_ID\":\"610524199112063237\",\"USER_VS_ID\":0,\"USER_ID\":0,\"USER_NAME\":\"李雪锋\",\"PAY_FLAG\":\"0\",\"PAYTYPE_FLAG\":\"\",\"ACCOUNT_SUM\":29.700,\"REMARK\":\"6\",\"PAYDETAIL\":[{\"APPLY_NAME\":\"尿常规\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":3,\"REC_MASTER_ID\":128674187,\"ITEM_NO\":\"JYKXZ000009\",\"ITEM_NAME\":\"尿常规(化验)\",\"ITEM_COSTS\":7.200,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57393-3000-0\",\"ITEM_CLASS\":\"化验\",\"ITEM_CODE\":\"JYKXZ000009\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"},{\"APPLY_NAME\":\"血常规（五分类）\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":4,\"REC_MASTER_ID\":128674187,\"ITEM_NO\":\"JYKXZ00051\",\"ITEM_NAME\":\"血常规（五分类）(化验)\",\"ITEM_COSTS\":17.100,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57393-3000-0\",\"ITEM_CLASS\":\"化验\",\"ITEM_CODE\":\"JYKXZ00051\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"},{\"APPLY_NAME\":\"采血管\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":5,\"REC_MASTER_ID\":128674187,\"ITEM_NO\":\"CXG045\",\"ITEM_NAME\":\"采血管(材料)\",\"ITEM_COSTS\":0.450,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57393-3000-0\",\"ITEM_CLASS\":\"材料\",\"ITEM_CODE\":\"CXG045\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"},{\"APPLY_NAME\":\"静脉采血(检验科)\",\"IS_CONFIRM\":\"0\",\"REC_DETAIL_ID\":6,\"REC_MASTER_ID\":128674187,\"ITEM_NO\":\"12040000201\",\"ITEM_NAME\":\"静脉采血(检验科)(治疗)\",\"ITEM_COSTS\":4.950,\"VISIT_DATE\":\"2020/08/20\",\"SERIAL_NO\":\"57393-3000-0\",\"ITEM_CLASS\":\"治疗\",\"ITEM_CODE\":\"12040000201\",\"PERFORMED_BY\":\"口腔科门诊\",\"DRUG_WINDOWS\":\"\",\"PRESC_ATTR\":\"2020082010115\",\"VISIT_NO\":\"10115\"}],\"UNIQUE_KEY\":\"09fb8605abeb9b35aaceedbd415cd33d\",\"VISIT_DATE\":\"2020/08/20\"}]","CHOOSE_MODEL":"1","TOTAL":"3","ACCOUNT_SUM":103.430,"TOTAL_ROUND":"2","DELETE_FLAG":1,"REG_ID":"128674185,128674186,128674187","NEED_REMOVE":true}],"QUERY_PAY_TYPE":"2","PATIENT_NAME":"李雪锋","CLINIC_TOTAL_FEE_INFO":"已根据医院财务要求进行位数处理","PHONE_NUMBER":"","VISIT_NO":"10115","AGE":28}}
           if (data.resultCode == "0000000") {
             this.loading = false;
@@ -309,6 +319,8 @@ export default {
             this.HOSPITAL_LEVEL = res.HOSPITAL_LEVEL
             this.HOSPITAL_ID = res.PAY[0] && res.PAY[0].HOSPITAL_ID;
             this.ACCOUNT_SUM = res.PAY[0] && res.PAY[0].ACCOUNT_SUM;
+            this.CHOOSE_MODEL = res.PAY[0] && res.PAY[0].CHOOSE_MODEL // 支付方式，单选，多选，全选
+            // this.CHOOSE_MODEL = '0'
             this.PUBLIC_SERVICE_TYPE = res.PUBLIC_SERVICE_TYPE;
             this.PAYMENT_INFO =
               (res.PAY[0] &&
@@ -339,11 +351,13 @@ export default {
         // USER_VS_ID: this.PAYMENT_INFO[0] && this.PAYMENT_INFO[0].USER_VS_ID,
         // operateCurrent_UserId: this.PAYMENT_INFO[0] && this.PAYMENT_INFO[0].USER_ID,
         MODEL_HOSPITAL_ID: this.HOSPITAL_ID,
-        details:
-          (this.DETAIL_ORDER_NO && JSON.stringify(this.DETAIL_ORDER_NO)) || [],
+        details: this.getDetails(),
+        // details: 
+        //   (this.DETAIL_ORDER_NO && JSON.stringify(this.DETAIL_ORDER_NO)) || [],
         // details: [{REC_MASTER_ID:128674185},{REC_MASTER_ID:128674186},{REC_MASTER_ID:128674187}],
         MARK_DESC: `${this.PATIENT_NAME}的缴费单`,
-        AMOUNT: this.ACCOUNT_SUM,
+        // AMOUNT: this.ACCOUNT_SUM,
+        AMOUNT: this.CHOOSE_MODEL == 2 ? this.ACCOUNT_SUM : this.count,
         isLogin: false,
         loc: "c",
         opVersion: "2.6.71",
@@ -351,6 +365,9 @@ export default {
         auth: 0,
         hospitalID: this.HOSPITAL_ID
       };
+      if (this.CHOOSE_MODEL == 2) {
+        param.TOTAL = this.DETAIL_ORDER_NO.length // 全选的时候需要传递TOTAL参数
+      }
       return reqOutTradeNo(param)
         .then(({ data }) => {
           if (data.resultCode == "0000000") {
@@ -369,7 +386,8 @@ export default {
         op: "payHandle",
         PAY_TYPE: "54",
         PUBLIC_SERVICE_TYPE: this.PUBLIC_SERVICE_TYPE,
-        AMOUNT: this.ACCOUNT_SUM,
+        // AMOUNT: this.ACCOUNT_SUM,
+        AMOUNT: this.CHOOSE_MODEL == 2 ? this.ACCOUNT_SUM : this.count,
         hospitalID: this.HOSPITAL_ID,
         TRADE_NO: this.OUT_TRADE_NO, //交易订单号
         TRANS_CODE: "01"
@@ -391,20 +409,71 @@ export default {
     },
     async reqAgain() {
       await this.reqPaymentBusiness();
-      await this.reqTradeNo();
+      await this.reqTradeNo()
       if (this.OUT_TRADE_NO) {
-        this.requestPayUrl();
+        this.requestPayUrl()
+      }
+    },
+    // 获取订单号需要传入当前勾选的处方单信息
+    getDetails () {
+      if (this.CHOOSE_MODEL == 2) {
+        return (this.DETAIL_ORDER_NO && JSON.stringify(this.DETAIL_ORDER_NO)) || JSON.stringify([])
+      } else {
+        let arr = []
+        this.chooseIndex.forEach((item,index) => {
+          item && arr.push(this.DETAIL_ORDER_NO[index])
+        })
+        return JSON.stringify(arr)
+      }
+    },
+    // 加    
+    floatAdd(arg1,arg2){    
+      let r1,r2,m;
+      try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0}
+      try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0}
+      m=Math.pow(10,Math.max(r1,r2))
+      return (arg1*m+arg2*m)/m
+    },
+    // 减    
+    floatSub(arg1,arg2){    
+      let r1,r2,m,n;    
+      try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0}    
+      try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0}    
+      m=Math.pow(10,Math.max(r1,r2));    
+      //动态控制精度长度    
+      n=(r1>=r2)?r1:r2;    
+      return ((arg1*m-arg2*m)/m).toFixed(n);    
+    }, 
+    // 勾选
+    checkboxClick (index,count) {
+      // console.log('点击的是第几个--金额是---',index,count)
+      if (String(this.CHOOSE_MODEL) === '0') {
+        // console.log('单选模式---')
+        let arr = []
+        arr[index] = true
+        this.chooseIndex = arr
+        this.count = count
+      } else if (this.CHOOSE_MODEL == 1) {
+        // console.log('多选模式---')
+        this.$set(this.chooseIndex,index,!this.chooseIndex[index])
+        if (this.chooseIndex[index]) {
+          this.count = this.floatAdd(this.count,count)
+        } else {
+          this.count = this.floatSub(this.count,count)
+        }
       }
     }
   },
-  async created() {
-    await this.reqPaymentBusiness();
-    await this.reqTradeNo()
-    if (this.OUT_TRADE_NO) {
-      this.requestPayUrl()
-    }
+  // activated () {
+  //   this.reqPaymentBusiness()
+  // },
+  created() {
+    console.log('1111111---',window.location.href)
+    // console.log('2222222---',window.location.href + '&t=' + Date.now())
+    window.location.replace(window.location.href + '&t=' + Date.now())
+    this.reqPaymentBusiness()
   }
-};
+}
 </script>
 <style lang="scss" scoped>
 .loading {
@@ -436,13 +505,17 @@ export default {
   .historyPayment {
     position: absolute;
     z-index: 9999;
-    right: 0;
-    top: 50%;
-    width: 2.36rem;
-    height: 2.693333rem;
+    // right: 0;
+    // top: 50%;
+    // width: 2.36rem;
+    // height: 2.693333rem;
     img {
-      width: 100%;
-      height: 100%;
+      width: 2.36rem;
+      height: 2.693333rem;
+      width: 1.84rem;
+      height: 2.1333rem;
+      // width: 100%;
+      // height: 100%;
     }
   }
   .history_container {
@@ -696,6 +769,9 @@ export default {
             font-size: 0.4rem;
             font-weight: bold;
             color: rgba(0, 0, 0, 1);
+            .icon {
+              color:rgba(9, 43, 240, 0.445);
+            }
           }
           .title_price {
             font-size: 0.48rem;

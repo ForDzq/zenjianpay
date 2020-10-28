@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "351755",
+      "name": "勾选",
+      "font_class": "gouxuan",
+      "unicode": "e60f",
+      "unicode_decimal": 58895
+    },
+    {
+      "icon_id": "1518141",
+      "name": "勾选",
+      "font_class": "gouxuan1",
+      "unicode": "e65c",
+      "unicode_decimal": 58972
+    },
+    {
       "icon_id": "16247472",
       "name": "取 消",
       "font_class": "quxiao",

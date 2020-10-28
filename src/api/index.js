@@ -5,18 +5,19 @@ const BASE = isPro ? 'https://app.yiliao.ccb.com' : '/api'
 // const BASE = '/api'
 
 //1.1门诊快速缴费查询接口
-export const reqPaymentBusinessFast = ({op,PUBLIC_SERVICE_TYPE,HOSPITALID_TREE,hospitalID,patientId,ID_NO,NAME,QUERY_TYPE}) => ajax({
+export const reqPaymentBusinessFast = ({op,PUBLIC_SERVICE_TYPE,HOSPITALID_TREE,NAME,patientId,QUERY_TYPE,sign}) => ajax({
   method: 'GET',
   url: BASE+'/APP/payment/action/PaymentActionC.jspx',
   params: {
     op,
     PUBLIC_SERVICE_TYPE,
     HOSPITALID_TREE,
-    hospitalID,
-    patientId,
-    ID_NO,
+    // hospitalID,
     NAME,
-    QUERY_TYPE
+    patientId,
+    // ID_NO,
+    QUERY_TYPE,
+    sign
   }
 })
 
@@ -63,25 +64,28 @@ export const reqPayHandleResult = ({op,TRADE_NO,TRANS_CODE}) => ajax({
 })
 
 // 1.5 生成订单号，支持单选或者多选来支付OUT_TRADE_NO----/APP/ccb/payment/action/PaymentActionC.jspx
-export const reqOutTradeNo = ({op,IS_CLINIC_FAST,USER_VS_ID,operateCurrent_UserId,MODEL_HOSPITAL_ID,details,MARK_DESC,AMOUNT,isLogin,loc,opVersion,isWebS,auth,hospitalID}) => ajax({
+// {op,IS_CLINIC_FAST,USER_VS_ID,operateCurrent_UserId,MODEL_HOSPITAL_ID,details,MARK_DESC,AMOUNT,isLogin,loc,opVersion,isWebS,auth,hospitalID,TOTAL}
+export const reqOutTradeNo = (val) => ajax({
   method: 'GET',
   url: BASE+'/APP/payment/action/PaymentActionC.jspx',
-  params: {
-    op,
-    IS_CLINIC_FAST,
-    USER_VS_ID,
-    operateCurrent_UserId,
-    MODEL_HOSPITAL_ID,
-    details,
-    MARK_DESC,
-    AMOUNT,
-    isLogin,
-    loc,
-    opVersion,
-    isWebS,
-    auth,
-    hospitalID
-  }
+  params: val
+  // params: {
+  //   op,
+  //   IS_CLINIC_FAST,
+  //   USER_VS_ID,
+  //   operateCurrent_UserId,
+  //   MODEL_HOSPITAL_ID,
+  //   details,
+  //   MARK_DESC,
+  //   AMOUNT,
+  //   isLogin,
+  //   loc,
+  //   opVersion,
+  //   isWebS,
+  //   auth,
+  //   hospitalID,
+  //   TOTAL
+  // }
 })
 
 // 1.6 查询历史缴费记录接口 /APP/ccb/payment/action/PaymentActionC.jspx  getPayHisFast
