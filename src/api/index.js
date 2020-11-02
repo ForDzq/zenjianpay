@@ -69,23 +69,6 @@ export const reqOutTradeNo = (val) => ajax({
   method: 'GET',
   url: BASE+'/APP/payment/action/PaymentActionC.jspx',
   params: val
-  // params: {
-  //   op,
-  //   IS_CLINIC_FAST,
-  //   USER_VS_ID,
-  //   operateCurrent_UserId,
-  //   MODEL_HOSPITAL_ID,
-  //   details,
-  //   MARK_DESC,
-  //   AMOUNT,
-  //   isLogin,
-  //   loc,
-  //   opVersion,
-  //   isWebS,
-  //   auth,
-  //   hospitalID,
-  //   TOTAL
-  // }
 })
 
 // 1.6 查询历史缴费记录接口 /APP/ccb/payment/action/PaymentActionC.jspx  getPayHisFast

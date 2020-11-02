@@ -3,7 +3,6 @@ import Vue  from 'vue'
 
 import ScanPrescription from '../pages/ScanPrescription/ScanPrescription'
 import PayResults from '../pages/PayResults/PayResults'
-// import PayIframe from '../pages/PayIframe/PayIframe'
 Vue.use(Router)
 
 export default new Router ({
@@ -24,8 +23,3 @@ export default new Router ({
     component: PayResults
   }]
 })
-// {
-//   path: '/PayIframe',
-//   name: 'PayIframe',
-//   component: PayIframe
-// }

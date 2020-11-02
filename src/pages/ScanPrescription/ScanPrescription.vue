@@ -130,7 +130,7 @@
             </div>
           </template>
         </div>
-        <div class="btn" @click="confirmPayment" v-if="hasPayment">确认支付 ￥{{CHOOSE_MODEL == 2 ? ACCOUNT_SUM : count}}</div>
+        <div class="btn" :class="{cantClick:hasConfirmClick}" @click="confirmPayment" v-if="hasPayment">确认支付 ￥{{CHOOSE_MODEL == 2 ? ACCOUNT_SUM : count}}</div>
       </div>
     </div>
   </div>
@@ -140,6 +140,8 @@
 import HeaderTitle from "../../components/HeaderTitle";
 import Drag from "../../components/Drag";
 import { reqPaymentBusinessFast, reqPayHandle, reqOutTradeNo, reqPayHisFast} from "../../api";
+import debounce from 'lodash/debounce';
+import { Indicator,Toast } from "mint-ui";
 export default {
   name: "ScanPrescription", // 使用路由缓存的时候需要在这里设置
   components: {
@@ -175,6 +177,7 @@ export default {
       CHOOSE_MODEL: '' , // 支付模式，0是单选，1是多选，2是全选
       chooseIndex: [], // 单选，多选，全选，选中的index
       count: 0, // 选中一共的金额
+      hasConfirmClick: false // 点击确认支付
     };
   },
   watch: {
@@ -223,30 +226,56 @@ export default {
       }
     },
     // 点击确认支付
-    async confirmPayment() {
+    confirmPayment: debounce(async function() {
       let hasSelect = this.chooseIndex.filter((item) => {
         return item
       })
+      if (this.hasConfirmClick) {
+        return
+      }
       if (this.CHOOSE_MODEL == 2 || hasSelect.length) {
         // alert('执行了')
-        if (this.payUrl) {
-          window.location.href = this.payUrl;
-        } else {
-          await this.reqTradeNo();
-          if (this.OUT_TRADE_NO) {
-            await this.requestPayUrl();
-            if (this.payUrl) {
-              window.location.href = this.payUrl;
-            } else {
-              alert("请求失败，请重新点击确认支付");
-            }
+        this.hasConfirmClick = true // 置灰，不可点击
+        await this.reqTradeNo();
+        if (this.OUT_TRADE_NO) {
+          await this.requestPayUrl();
+          if (this.payUrl) {
+            this.hasConfirmClick = false // 恢复，可点击
+            Toast('正在跳转支付页面，请稍等')
+            window.location.href = this.payUrl;
           } else {
+            this.hasConfirmClick = false // 恢复，可点击
             alert("请求失败，请重新点击确认支付");
           }
+        } else {
+          this.hasConfirmClick = false // 恢复，可点击
+          alert("请求失败，请重新点击确认支付");
         }
       }
-      // this.$router.push('/PayResults')
-    },
+    },400),
+    // async confirmPayment() {
+    //   let hasSelect = this.chooseIndex.filter((item) => {
+    //     return item
+    //   })
+    //   if (this.CHOOSE_MODEL == 2 || hasSelect.length) {
+    //     // alert('执行了')
+    //     if (this.payUrl) {
+    //       window.location.href = this.payUrl;
+    //     } else {
+    //       await this.reqTradeNo();
+    //       if (this.OUT_TRADE_NO) {
+    //         await this.requestPayUrl();
+    //         if (this.payUrl) {
+    //           window.location.href = this.payUrl;
+    //         } else {
+    //           alert("请求失败，请重新点击确认支付");
+    //         }
+    //       } else {
+    //         alert("请求失败，请重新点击确认支付");
+    //       }
+    //     }
+    //   }
+    // },
     // 获取历史缴费信息
     reqHistoryList () {
       let param = {
@@ -368,14 +397,20 @@ export default {
       if (this.CHOOSE_MODEL == 2) {
         param.TOTAL = this.DETAIL_ORDER_NO.length // 全选的时候需要传递TOTAL参数
       }
+      Indicator.open()
       return reqOutTradeNo(param)
         .then(({ data }) => {
           if (data.resultCode == "0000000") {
             let res = data.data;
             this.OUT_TRADE_NO = res.OUT_TRADE_NO;
+            // 下面这句话要去掉
+            // console.log('111---',res.OUT_TRADE_NO)
+            // localStorage.setItem('aaa',(localStorage.getItem('aaa') || '') +','+res.OUT_TRADE_NO)
           }
+          Indicator.close()
         })
         .catch(e => {
+          Indicator.close()
           console.log("获取支付订单号错误(支持多个订单支付)----", e);
         });
     },
@@ -392,6 +427,7 @@ export default {
         TRADE_NO: this.OUT_TRADE_NO, //交易订单号
         TRANS_CODE: "01"
       };
+      Indicator.open()
       return reqPayHandle(param)
         .then(({ data }) => {
           if (data.resultCode == "0000000") {
@@ -402,17 +438,20 @@ export default {
           } else {
             console.log("获取支付url失败--data", data);
           }
+          Indicator.close()
         })
         .catch(e => {
+          Indicator.close
           console.log("获取支付url失败----", e);
         });
     },
     async reqAgain() {
       await this.reqPaymentBusiness();
-      await this.reqTradeNo()
-      if (this.OUT_TRADE_NO) {
-        this.requestPayUrl()
-      }
+      // 原本只有全选支付，所以想着把请求发了，用户点击确认支付的时候就可以直接跳到支付链接，现在不能这样做
+      // await this.reqTradeNo()
+      // if (this.OUT_TRADE_NO) {
+      //   this.requestPayUrl()
+      // }
     },
     // 获取订单号需要传入当前勾选的处方单信息
     getDetails () {
@@ -464,13 +503,13 @@ export default {
       }
     }
   },
-  // activated () {
-  //   this.reqPaymentBusiness()
-  // },
   created() {
     console.log('1111111---',window.location.href)
     // console.log('2222222---',window.location.href + '&t=' + Date.now())
-    window.location.replace(window.location.href + '&t=' + Date.now())
+    let href = window.location.href
+    if (href.indexOf("&t=") == -1) {
+      window.location.replace(href + '&t=' + Date.now())
+    }
     this.reqPaymentBusiness()
   }
 }
@@ -854,6 +893,9 @@ export default {
     border: 0px;
     font-size: 0.4rem;
     color: #fff;
+  }
+  .cantClick {
+    background-color: #ccc;
   }
 }
 </style>
